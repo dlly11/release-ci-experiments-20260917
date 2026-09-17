@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/dlly11/release-ci-experiments-20260917/compare/v0.2.0...v0.2.1) (2026-09-17)
+
+
+### Bug Fixes
+
+* allow release creation to comment on its merged PR ([6836335](https://github.com/dlly11/release-ci-experiments-20260917/commit/6836335dac0353f51b31299e632fd6fef57b483c))
+
 ## [0.2.0](https://github.com/dlly11/release-ci-experiments-20260917/compare/v0.1.0...v0.2.0) (2026-09-17)
 
 
