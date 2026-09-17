@@ -34,6 +34,8 @@ jobs:
           assert pr['state']=='open' and pr['base']['ref']=='probes'
           assert pr['head']['repo']['full_name']==repo
           sha=pr['head']['sha']
+          merge_sha=pr['merge_commit_sha']
+          assert api(f'git/commits/{merge_sha}')["tree"]["sha"] == api(f'git/commits/{sha}')["tree"]["sha"]
           for workflow,name in [('ci.yml','CI result'),('pr-title.yml','Conventional PR title')]:
               runs=api(f'actions/workflows/{workflow}/runs?'+urlencode({'head_sha':sha,'event':'workflow_dispatch','per_page':100}))['workflow_runs']
               run=max(runs,key=lambda item:item['id'])
@@ -41,6 +43,6 @@ jobs:
               jobs=api(f'actions/runs/{run["id"]}/jobs')['jobs']
               assert len(jobs)==1 and jobs[0]['name']==name and jobs[0]['conclusion']=='success'
               assert api(f'pulls/{pr["number"]}')['head']['sha']==sha
-              check=api('check-runs',{'name':name,'head_sha':sha,'status':'completed','conclusion':'success','details_url':run['html_url'],'output':{'title':'Explicit publication diagnostic','summary':f'Validated exact-head successful sandbox run {run["id"]}.'}})
+              check=api('check-runs',{'name':name,'head_sha':merge_sha,'status':'completed','conclusion':'success','details_url':run['html_url'],'output':{'title':'Explicit publication diagnostic','summary':f'Validated exact-head successful sandbox run {run["id"]}.'}})
               print(json.dumps({'check':check['id'],'name':name,'head':sha,'backing_run':run['id']}))
           PY
