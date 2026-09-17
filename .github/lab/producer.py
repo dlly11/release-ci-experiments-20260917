@@ -33,7 +33,7 @@ if operation in {"create", "update"}:
     elif marker == "body":
         message += "\n\n[skip ci]"
     elif marker == "trailer":
-        message += "\n\nskip-checks: true"
+        message += "\n\n\nskip-checks: true"
     content = base64.b64encode(f"{case} {operation} {time.time_ns()}\n".encode()).decode()
     result = api(
         "contents/lab-probe.txt",
