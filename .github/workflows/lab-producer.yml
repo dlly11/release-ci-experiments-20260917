@@ -9,7 +9,7 @@ permissions:
   contents: read
   actions: read
   pull-requests: read
-  checks: write
+  statuses: write
 jobs:
   publish:
     runs-on: ubuntu-latest
@@ -43,6 +43,6 @@ jobs:
               jobs=api(f'actions/runs/{run["id"]}/jobs')['jobs']
               assert len(jobs)==1 and jobs[0]['name']==name and jobs[0]['conclusion']=='success'
               assert api(f'pulls/{pr["number"]}')['head']['sha']==sha
-              check=api('check-runs',{'name':name,'head_sha':merge_sha,'status':'completed','conclusion':'success','details_url':run['html_url'],'output':{'title':'Explicit publication diagnostic','summary':f'Validated exact-head successful sandbox run {run["id"]}.'}})
+              check=api(f'statuses/{sha}',{'context':name,'state':'success','target_url':run['html_url'],'description':f'Exact-head sandbox validation {run["id"]}'})
               print(json.dumps({'check':check['id'],'name':name,'head':sha,'backing_run':run['id']}))
           PY
