@@ -1,5 +1,6 @@
 """Release automation must use explicit credentials and only the expected managed PR."""
 
+import json
 from pathlib import Path
 from typing import Any
 
@@ -7,6 +8,7 @@ import pytest
 
 from repo_tools import cli
 from repo_tools.commands import check_release_automation as automation
+from repo_tools.release_changes import CONFIG, release_branch
 
 
 @pytest.mark.parametrize("mode", ["github-token", "app", "pat"])
@@ -47,14 +49,19 @@ def test_invalid_configuration(environment: dict[str, str]) -> None:
 
 
 @pytest.fixture
-def release_pr(monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
+def managed_branch() -> str:
+    return release_branch(json.loads(Path(CONFIG).read_text()))
+
+
+@pytest.fixture
+def release_pr(monkeypatch: pytest.MonkeyPatch, managed_branch: str) -> dict[str, Any]:
     pr = {
         "state": "open",
         "draft": False,
         "title": "chore(main): release 2.0.0",
         "base": {"ref": "main", "repo": {"full_name": "owner/project"}},
         "head": {
-            "ref": "release-please--branches--main--components--release-ci-experiments-20260917",
+            "ref": managed_branch,
             "sha": "a" * 40,
             "repo": {"full_name": "owner/project"},
         },
@@ -64,12 +71,12 @@ def release_pr(monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
     return pr
 
 
-def test_major_release_is_eligible(release_pr: dict[str, Any]) -> None:
+def test_major_release_is_eligible(release_pr: dict[str, Any], managed_branch: str) -> None:
     assert (
         automation.eligible_pr(
             "owner/project",
             1,
-            "release-please--branches--main--components--release-ci-experiments-20260917",
+            managed_branch,
             "a" * 40,
             root=Path.cwd(),
         )
@@ -80,7 +87,7 @@ def test_major_release_is_eligible(release_pr: dict[str, Any]) -> None:
 @pytest.mark.parametrize(
     "change", ["closed", "draft", "fork", "base", "branch", "head", "title", "label", "repo"]
 )
-def test_ineligible_pr(release_pr: dict[str, Any], change: str) -> None:
+def test_ineligible_pr(release_pr: dict[str, Any], change: str, managed_branch: str) -> None:
     if change == "closed":
         release_pr["state"] = "closed"
     elif change == "draft":
@@ -103,7 +110,7 @@ def test_ineligible_pr(release_pr: dict[str, Any], change: str) -> None:
         automation.eligible_pr(
             "owner/project",
             1,
-            "release-please--branches--main--components--release-ci-experiments-20260917",
+            managed_branch,
             "a" * 40,
             root=Path.cwd(),
         )
@@ -127,7 +134,10 @@ def test_configuration_cli_checks_repository_and_writes_no_secrets(
 
 
 def test_pr_cli_publishes_validated_title(
-    release_pr: dict[str, Any], tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    release_pr: dict[str, Any],
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    managed_branch: str,
 ) -> None:
     monkeypatch.setenv("GITHUB_REPOSITORY", "owner/project")
     output = tmp_path / "outputs"
@@ -139,7 +149,7 @@ def test_pr_cli_publishes_validated_title(
                 "--pr",
                 "1",
                 "--branch",
-                "release-please--branches--main--components--release-ci-experiments-20260917",
+                managed_branch,
                 "--expected-head",
                 "a" * 40,
             ]
