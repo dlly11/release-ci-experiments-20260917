@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "release-lab-package-b"
-version = "0.2.1"
+version = "0.2.2"
 description = "Example Python Package B built independently on release-lab-core."
 readme = "README.md"
 requires-python = ">=3.12"
