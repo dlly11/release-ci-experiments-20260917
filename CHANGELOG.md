@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.2](https://github.com/dlly11/release-ci-experiments-20260917/compare/v0.2.1...v0.2.2) (2026-09-17)
+
+
+### Bug Fixes
+
+* remove sandbox failure injection ([4f4381a](https://github.com/dlly11/release-ci-experiments-20260917/commit/4f4381a75d0a23c3a85dfec3ea60e01cf9b30942))
+
 ## [0.2.1](https://github.com/dlly11/release-ci-experiments-20260917/compare/v0.2.0...v0.2.1) (2026-09-17)
 
 
