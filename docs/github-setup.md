@@ -59,16 +59,37 @@ By default, the workflow uses its short-lived `GITHUB_TOKEN` with explicit permi
 Token-created or updated PRs produce approval-required workflow runs; other token-generated
 events, including pushes, do not start workflows. Explicit `workflow_dispatch` calls do start
 workflows, so Release dispatches CI and title validation after synchronizing its branch.
-The dispatched run is authoritative. If an additional automatic PR run is approved, it verifies
-that dispatch instead of repeating the quality suite; approval is unnecessary for the dispatch. See [GitHub's token event behavior](https://docs.github.com/en/actions/concepts/security/github_token#when-github_token-triggers-workflow-runs).
+The dispatched run performs the authoritative validation without approval. GitHub may still
+require the automatic PR runs before its required checks allow merging. Those CI runs verify
+the dispatched result instead of repeating the quality suite. See [GitHub's token event behavior](https://docs.github.com/en/actions/concepts/security/github_token#when-github_token-triggers-workflow-runs).
 The title workflow uses only read access to contents and pull requests. No additional credential
 is required for this default mode. Manual dispatch requires the workflow on the default branch.
 
+### Approving and retrying release PR checks
+
+1. Wait for **Prepare release PR** to synchronize the lockfile and dispatch validation for the
+   final head. An earlier run may have been superseded by that commit.
+2. If the PR shows **Approve workflows to run**, a maintainer with write access should approve
+   the current runs. A successful dispatch alone does not guarantee GitHub will consider the
+   required PR checks satisfied.
+3. If validation fails, inspect its logs and fix the cause. Retry the authoritative dispatch for
+   the current head before retrying a failed delegating PR run. Use the
+   [evidence recovery guide](releases.md#recovering-expired-ci-evidence) for expired evidence.
+4. Merge only when GitHub's required checks and any required reviews pass. For an expired
+   approval run that cannot be retried, close and reopen the PR as a maintainer to request fresh
+   PR checks; verify they use the synchronized head.
+
+Approval-required runs can remain in Actions history or expire into failures. This is a
+limitation of the default token mode, not a reason to bypass required checks. The template does
+not delete workflow history automatically or use commit skip instructions to hide these runs.
+
 ## Optional unattended releases
 
-Keep the defaults for repositories that cannot use additional automation credentials. To remove
-the token-specific workflow approval and optionally merge releases automatically, configure an
-enterprise-approved App or PAT under **Settings > Secrets and variables > Actions**:
+Keep the defaults when enterprise policy prohibits additional automation credentials, and allow
+for the approval step above. Where permitted, prefer an enterprise-approved GitHub App to remove
+token-specific PR approval and optionally merge releases automatically. PAT mode remains available
+for repositories whose policy permits it. Configure the chosen mode under
+**Settings > Secrets and variables > Actions**:
 
 | Name | Kind | Value |
 | --- | --- | --- |
@@ -81,8 +102,8 @@ enterprise-approved App or PAT under **Settings > Secrets and variables > Action
 For an App, install it on this repository with **Contents**, **Pull requests**, and **Issues**
 read/write permissions. The workflow uses the official, SHA-pinned
 [App token action](https://github.com/actions/create-github-app-token), scopes its token to this
-repository, and revokes it when the preparation job ends. Registration supplies an automation
-identity; no hosted application code or server is required. An existing approved App can be used.
+repository, and creates and revokes a separate token within each release job that needs it.
+Registration supplies an automation identity; no hosted application code or server is required. An existing approved App can be used.
 For PAT mode, prefer a fine-grained token with those same permissions on this repository and an
 account allowed to perform the required operations. Follow enterprise approval and expiry policy;
 rotate or renew it before expiry. Never put either credential in a creation recipe.
@@ -117,7 +138,7 @@ Keep the default release branch/title convention when using this feature. Merge 
 the current CI design; rulesets requiring them need a separate CI integration.
 
 Missing or expired credentials, disabled repository auto-merge, and permission failures are shown
-in the preparation job. Correct the setup and retry release preparation after main's verified CI
+in the relevant release job. Correct the setup and retry release preparation after main's verified CI
 passes. There is no fallback to another credential and no administrator merge bypass.
 
 To stop future automatic merge requests, set `RELEASE_AUTO_MERGE=false`. To cancel an already

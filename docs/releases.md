@@ -100,7 +100,9 @@ The release workflow runs after successful **post-merge verification on the curr
    then checks the latest push CI run for that commit. Its `Merged PR verification` job must pass:
    merged files must match the tested PR's recorded tree, every job in the validated CI profile must have
    succeeded, and final subjects/version metadata must be valid. The full quality suite is not
-   repeated after merging. Only then may Release Please open or update a release PR.
+   repeated after merging. **Create GitHub release** validates the selected credentials and asks
+   Release Please to create releases for merged release PRs, without opening new PRs.
+   **Prepare release PR** then rechecks readiness and opens or updates the next release PR.
 2. The pull request updates `version.txt`, `CHANGELOG.md`, the root and product Python project
    versions, the CMake version, and the Release Please manifest.
 3. The workflow checks out the managed branch, regenerates `uv.lock`, and commits it when changed.
@@ -111,11 +113,20 @@ The release workflow runs after successful **post-merge verification on the curr
    required checks and reviews pass. Auto-merge supports every release version, including majors.
 5. After the release PR is merged and post-merge verification succeeds, Release Please creates the `vX.Y.Z` tag and
    GitHub Release.
-6. The same workflow builds wheels and source distributions for every product workspace member,
+6. Once **Create GitHub release** succeeds, asset jobs build wheels and source distributions for
+   every product workspace member,
    creates native install archives for Linux, macOS, and Windows, smoke-tests the built wheels and
    native install trees, verifies version metadata, and attaches them to the GitHub Release. These
    checks exercise the actual release artifacts; unit-test matrices, coverage, linting, and
    sanitizers remain on PRs.
+
+Asset jobs depend only on successful release creation. They run independently of **Prepare
+release PR**, so a failure to open the next PR, refresh its lockfile, dispatch checks, or enable
+auto-merge does not block uploads for the release already created. Such a preparation failure
+still marks the workflow as failed and needs attention. Release creation, PR preparation, and
+artifact jobs have their own permissions; App tokens remain within the job that creates them.
+For default-token PR approval and required-check behavior, see
+[GitHub setup](github-setup.md#approving-and-retrying-release-pr-checks).
 
 Automatic release runs for superseded commits skip without calling Release Please. The gate
 rechecks `main` immediately before that call; automatic and manual runs share one concurrency
@@ -207,6 +218,9 @@ See the [settings audit](github-setup.md#audit-the-managed-github-settings) for 
 extended diagnostics, permissions, and exit codes.
 
 ## Recovering missing release assets
+
+If only **Prepare release PR** fails, retry that job after fixing its cause; successful asset
+jobs do not need rerunning. Preparation does not create tags or GitHub Releases.
 
 If a build or upload fails after the GitHub Release is created, open the original **Release**
 workflow run and choose **Re-run failed jobs**, or rerun the specific failed asset job. Retry from
