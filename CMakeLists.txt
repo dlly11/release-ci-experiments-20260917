@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.25)
 
 project(
   release_lab
-  VERSION 0.1.0 # x-release-please-version
+  VERSION 0.2.0 # x-release-please-version
   DESCRIPTION "Production-oriented C component examples"
   LANGUAGES C
 )
