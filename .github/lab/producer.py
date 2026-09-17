@@ -1,5 +1,8 @@
 """Create controlled sandbox events using the workflow's short-lived token."""
 
+# Sandbox inputs are passed as argv; no shell or token is interpolated.
+# ruff: noqa: S603, S607
+
 import base64
 import json
 import os
