@@ -1,0 +1,41 @@
+name: Lab event producer
+on:
+  workflow_dispatch:
+    inputs:
+      case:
+        required: true
+        type: string
+      operation:
+        type: choice
+        options: [create, update, close, reopen]
+        default: create
+      marker:
+        type: choice
+        options: [none, subject, body, trailer]
+        default: none
+      dispatch:
+        type: boolean
+        default: false
+      pr-number:
+        type: string
+permissions:
+  contents: write
+  pull-requests: write
+  actions: write
+jobs:
+  produce:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: main
+          persist-credentials: false
+      - run: python .github/lab/producer.py
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CASE: ${{ inputs.case }}
+          OPERATION: ${{ inputs.operation }}
+          MARKER: ${{ inputs.marker }}
+          DISPATCH: ${{ inputs.dispatch }}
+          PR_NUMBER: ${{ inputs.pr-number }}

@@ -9,7 +9,7 @@ license-files = ["LICENSE"]
 
 [[project.authors]]
 name = "Release CI Experiment"
-email = "41898282+github-actions[bot]@users.noreply.github.com"
+email = "release-lab@example.com"
 
 [project.urls]
 Repository = "https://github.com/dlly11/release-ci-experiments-20260917"

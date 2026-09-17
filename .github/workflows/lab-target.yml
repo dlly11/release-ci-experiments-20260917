@@ -1,0 +1,14 @@
+name: Lab target observer
+on:
+  pull_request_target:
+    branches: [probes]
+    types: [opened, reopened, synchronize, edited, closed]
+permissions:
+  contents: read
+jobs:
+  observe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Record metadata without checking out PR code
+        run: python -c 'import json,os; e=json.load(open(os.environ["GITHUB_EVENT_PATH"])); print(json.dumps({"action":e["action"],"pr":e["number"],"merged":e["pull_request"]["merged"],"head":e["pull_request"]["head"]["sha"],"actor":os.environ["GITHUB_ACTOR"]}))'
