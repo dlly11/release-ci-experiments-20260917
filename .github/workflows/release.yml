@@ -97,9 +97,6 @@ jobs:
       issues: write
       pull-requests: write
     steps:
-      - name: Sandbox-only preparation failure after release creation
-        if: needs.release-please.outputs.release-created == 'true' && github.run_attempt == 1
-        run: exit 1
       - name: Check out release gate from main
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
