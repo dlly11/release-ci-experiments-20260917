@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "release-lab-core"
+version = "0.1.0"
+description = "Shared Python domain primitives for the monorepo example."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = []
+license = "MIT"
+license-files = ["LICENSE"]
+
+[[project.authors]]
+name = "Release CI Experiment"
+email = "41898282+github-actions[bot]@users.noreply.github.com"
+
+[project.urls]
+Repository = "https://github.com/dlly11/release-ci-experiments-20260917"
+Documentation = "https://dlly11.github.io/release-ci-experiments-20260917/"
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+release_lab_core = ["py.typed"]

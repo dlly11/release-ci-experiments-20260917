@@ -1,0 +1,61 @@
+{
+  "repository": {
+    "default_branch": "main",
+    "allow_merge_commit": true,
+    "merge_commit_title": "PR_TITLE",
+    "merge_commit_message": "PR_BODY",
+    "allow_rebase_merge": true,
+    "allow_squash_merge": true,
+    "squash_merge_commit_title": "PR_TITLE",
+    "squash_merge_commit_message": "COMMIT_MESSAGES"
+  },
+  "protection": {
+    "enforce_admins": {
+      "enabled": true
+    },
+    "required_pull_request_reviews": {
+      "required_approving_review_count": 0,
+      "require_code_owner_reviews": false,
+      "require_last_push_approval": false
+    },
+    "required_status_checks": {
+      "strict": true,
+      "checks": [
+        {
+          "context": "CI result",
+          "app_id": 15368
+        },
+        {
+          "context": "Conventional PR title",
+          "app_id": 15368
+        }
+      ]
+    },
+    "required_linear_history": {
+      "enabled": false
+    },
+    "allow_force_pushes": {
+      "enabled": false
+    },
+    "allow_deletions": {
+      "enabled": false
+    }
+  },
+  "validation": {
+    "full": [
+      "Python quality",
+      "Python 3.13",
+      "Python 3.14",
+      "Coverage",
+      "Documentation",
+      "Native build (ubuntu-latest)",
+      "Native build (macos-latest)",
+      "Native build (windows-latest)",
+      "Native static analysis",
+      "Native sanitizers"
+    ],
+    "release": [
+      "Release validation"
+    ]
+  }
+}

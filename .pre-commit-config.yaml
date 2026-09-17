@@ -1,0 +1,73 @@
+default_install_hook_types: [pre-commit, commit-msg]
+default_stages: [pre-commit]
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-added-large-files
+      - id: check-merge-conflict
+      - id: check-toml
+      - id: check-yaml
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.16.7
+    hooks:
+      - id: ruff-check
+        args: [--fix]
+      - id: ruff-format
+
+  - repo: https://github.com/astral-sh/uv-pre-commit
+    rev: 0.12.13
+    hooks:
+      - id: uv-lock
+
+  - repo: https://github.com/rhysd/actionlint
+    rev: v1.7.12
+    hooks:
+      - id: actionlint
+        args: [-shellcheck=, -pyflakes=]
+
+  - repo: local
+    hooks:
+      - id: conventional-commit
+        name: Conventional Commit subject
+        entry: uv run --no-sync repo-tools check-commits --message-file
+        language: system
+        stages: [commit-msg]
+        always_run: true
+
+      - id: version-consistency
+        name: repository version consistency
+        entry: uv run repo-tools check-versions
+        language: system
+        pass_filenames: false
+        files: ^(version\.txt|uv\.lock|CMakeLists\.txt|pyproject\.toml|python/.*/pyproject\.toml)$
+
+      - id: ty
+        name: ty (Python workspace members and private tooling)
+        entry: uv run repo-tools check-python
+        language: system
+        pass_filenames: false
+        types: [python]
+
+      - id: workspace-consistency
+        name: Python workspace registration consistency
+        entry: uv run repo-tools check-workspace
+        language: system
+        pass_filenames: false
+        files: ^(pyproject\.toml|python/.*|tools/repo_tools/.*|tools/release-please/config\.json)$
+
+      - id: clang-format
+        name: clang-format check
+        entry: clang-format --dry-run --Werror
+        language: system
+        files: ^native/.*\.(c|cpp|h)$
+
+      - id: cppcheck
+        name: cppcheck
+        entry: cppcheck --enable=warning,style,performance,portability --language=c --std=c17 --error-exitcode=1 --suppress=missingIncludeSystem
+        language: system
+        files: ^native/.*\.(c|h)$

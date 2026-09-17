@@ -1,0 +1,17 @@
+{% set target, fragment = redirects[pagename] %}
+{% set destination = pathto(target) %}
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="refresh" content="0; url={{ destination }}{% if fragment %}#{{ fragment }}{% endif %}">
+    <link rel="canonical" href="{{ destination }}">
+    <title>{{ project }}</title>
+  </head>
+  <body>
+    <p><a href="{{ destination }}{% if fragment %}#{{ fragment }}{% endif %}">Open the documentation.</a></p>
+    <script>
+      window.location.replace({{ destination | tojson }} + (window.location.hash || {{ ('#' + fragment if fragment else '') | tojson }}));
+    </script>
+  </body>
+</html>

@@ -1,0 +1,108 @@
+[project]
+name = "release-ci-experiments-20260917"
+version = "0.1.0"
+description = "Public sample repository for release workflow experiments."
+requires-python = ">=3.12"
+dependencies = []
+license = "MIT"
+license-files = ["LICENSE"]
+
+[[project.authors]]
+name = "Release CI Experiment"
+email = "41898282+github-actions[bot]@users.noreply.github.com"
+
+[project.urls]
+Repository = "https://github.com/dlly11/release-ci-experiments-20260917"
+Documentation = "https://dlly11.github.io/release-ci-experiments-20260917/"
+[tool.uv]
+package = false
+required-version = ">=0.10.9"
+# One backend version for editable installs, distribution checks, and release builds.
+build-constraint-dependencies = ["setuptools==84.0.0"]
+
+[tool.uv.workspace]
+members = [
+  "python/packages/*",
+  "python/apps/*",
+]
+
+[tool.uv.sources]
+monorepo-repo-tools = { path = "tools/repo_tools", editable = true }
+release-lab-core = { workspace = true }
+release-lab-package-a = { workspace = true }
+release-lab-package-b = { workspace = true }
+release-lab-package-a-cli = { workspace = true }
+
+[dependency-groups]
+test = [
+  "pytest>=8.4",
+  "pytest-cov>=6.2",
+]
+lint = [
+  "pre-commit>=4.2",
+  "ruff>=0.16.1",
+  "ty>=0.0.80",
+]
+dev = [
+  "monorepo-repo-tools",
+  { include-group = "lint" },
+  { include-group = "test" },
+]
+docs = [
+  "breathe>=4.36,<5",
+  "furo>=2025.7.19",
+  "myst-parser>=5.0,<6",
+  "sphinx>=9.1,<10",
+  "sphinxcontrib-mermaid>=2.0,<3",
+]
+coverage = [
+  { include-group = "test" },
+  "gcovr>=8.6,<9",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = [
+  "E",   # pycodestyle errors
+  "W",   # pycodestyle warnings
+  "F",   # pyflakes
+  "I",   # import sorting
+  "UP",  # Python upgrades
+  "B",   # bugbear
+  "SIM", # simplifications
+  "RUF", # Ruff-specific checks
+  "S",   # common security issues
+]
+
+[tool.ruff.lint.per-file-ignores]
+"**/tests/**" = ["S101"]
+"tools/repo_tools/**" = ["S603", "S607"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["repo_tools", "release_lab_core", "release_lab_package_a", "release_lab_package_a_cli", "release_lab_package_b"]
+
+[tool.ruff.format]
+docstring-code-format = true
+
+[tool.ty.environment]
+python-version = "3.12"
+
+[tool.pytest.ini_options]
+testpaths = ["python", "tools/repo_tools/tests"]
+addopts = "--import-mode=importlib --strict-config --strict-markers --cov --cov-report=term-missing"
+xfail_strict = true
+
+[tool.coverage.run]
+branch = true
+source = ["release_lab_core", "release_lab_package_a", "release_lab_package_b", "release_lab_package_a_cli"]
+
+[tool.coverage.report]
+fail_under = 90
+show_missing = true
+exclude_also = [
+  'if __name__ == "__main__":',
+  "raise NotImplementedError",
+]

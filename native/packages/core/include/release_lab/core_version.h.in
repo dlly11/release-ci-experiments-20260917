@@ -1,0 +1,16 @@
+#ifndef RELEASE_LAB_CORE_VERSION_H
+#define RELEASE_LAB_CORE_VERSION_H
+
+/** Core library major version. */
+#define RELEASE_LAB_CORE_VERSION_MAJOR @PROJECT_VERSION_MAJOR@
+
+/** Core library minor version. */
+#define RELEASE_LAB_CORE_VERSION_MINOR @PROJECT_VERSION_MINOR@
+
+/** Core library patch version. */
+#define RELEASE_LAB_CORE_VERSION_PATCH @PROJECT_VERSION_PATCH@
+
+/** Core library semantic version string. */
+#define RELEASE_LAB_CORE_VERSION "@PROJECT_VERSION@"
+
+#endif

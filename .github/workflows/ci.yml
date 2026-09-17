@@ -1,0 +1,326 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      release-pr-number:
+        description: Managed release PR number (requires expected-head)
+        type: string
+      expected-head:
+        description: Exact synchronized release PR head SHA
+        type: string
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  merged-pr:
+    name: Merged PR verification
+    if: >-
+      github.event_name == 'push' &&
+      !(github.event.before == '0000000000000000000000000000000000000000' || github.event.before == '0000000000000000000000000000000000000000000000000000000000000000')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Verify merged contents against successful PR CI
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COMMIT_BASE: ${{ github.event.before }}
+          COMMIT_HEAD: ${{ github.sha }}
+        run: python tools/repo_tools/run.py check-merge --base "${COMMIT_BASE}" --head "${COMMIT_HEAD}"
+      - run: python tools/repo_tools/run.py check-versions
+
+  ci-context:
+    name: CI context
+    if: >-
+      github.event_name != 'push' ||
+      (github.event.before == '0000000000000000000000000000000000000000' || github.event.before == '0000000000000000000000000000000000000000000000000000000000000000')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: read
+    outputs:
+      role: ${{ steps.context.outputs.role }}
+      profile: ${{ steps.context.outputs.profile }}
+      context: ${{ steps.context.outputs.context }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Select validation profile
+        id: context
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python tools/repo_tools/run.py check-ci-context
+
+  python-quality:
+    name: Python quality
+    needs: ci-context
+    if: &run-quality >-
+      needs.ci-context.outputs.role == 'authoritative' &&
+      needs.ci-context.outputs.profile == 'full'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Validate new commit subjects
+        if: github.event_name != 'push'
+        env:
+          COMMIT_BASE: ${{ github.event.pull_request.base.sha || github.event.before || format('origin/{0}', github.event.repository.default_branch) }}
+          COMMIT_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: python tools/repo_tools/run.py check-commits --base "${COMMIT_BASE}" --head "${COMMIT_HEAD}"
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+        with:
+          enable-cache: true
+      - run: uv sync --locked --all-packages
+      - run: uv run pre-commit run actionlint --all-files
+      - run: uv run ruff check --output-format=github .
+      - run: uv run ruff format --check .
+      - run: uv run repo-tools check-workspace
+      - run: uv run repo-tools check-python
+      - run: uv run repo-tools check-versions
+      - run: uv run repo-tools check-python-install
+  python-tests:
+    name: Python ${{ matrix.python-version }}
+    needs: ci-context
+    if: *run-quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.13", "3.14"]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+        with:
+          enable-cache: true
+          python-version: ${{ matrix.python-version }}
+      - run: uv sync --locked --all-packages
+      - run: uv run pytest --no-cov
+
+  coverage:
+    name: Coverage
+    needs: ci-context
+    if: *run-quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+        with:
+          enable-cache: true
+          python-version: "3.12"
+      - run: uv sync --locked --all-packages --group coverage
+      - run: uv run --group coverage repo-tools check-coverage
+      - name: Publish coverage summary
+        if: always() && hashFiles('build/coverage/reports/summary.md') != ''
+        run: cat build/coverage/reports/summary.md >> "${GITHUB_STEP_SUMMARY}"
+      - name: Upload coverage reports
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: coverage-reports
+          path: build/coverage/reports
+          if-no-files-found: warn
+          retention-days: 14
+
+  documentation:
+    needs: ci-context
+    if: *run-quality
+    name: Documentation
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+        with:
+          enable-cache: true
+      - name: Install Doxygen
+        run: sudo apt-get update && sudo apt-get install --yes doxygen
+      - run: uv sync --locked --all-packages --group docs
+      - run: uv run --group docs repo-tools build-docs
+
+  native-build:
+    name: Native build (${{ matrix.os }})
+    defaults:
+      run:
+        shell: bash
+    needs: ci-context
+    if: *run-quality
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            cc: gcc
+            cxx: g++
+          - os: macos-latest
+            cc: clang
+            cxx: clang++
+          - os: windows-latest
+            cc: gcc
+            cxx: g++
+    env:
+      CC: ${{ matrix.cc }}
+      CXX: ${{ matrix.cxx }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - run: cmake --preset dev
+      - run: cmake --build --preset dev
+      - run: ctest --preset dev
+      - name: Verify the native install tree
+        run: |
+          cmake --install build/dev --prefix build/dev/stage
+          python tools/repo_tools/run.py check-native-install build/dev/stage
+          cmake -S native/tests/install_consumer -B build/install-consumer -G Ninja -DMONOREPO_INSTALL_PREFIX="${{ github.workspace }}/build/dev/stage"
+          cmake --build build/install-consumer
+          ctest --test-dir build/install-consumer --output-on-failure
+
+      - name: Smoke-test the Release installation
+        run: |
+          cmake --preset release
+          cmake --build --preset release
+          cmake --install build/release --prefix build/release/stage
+          python tools/repo_tools/run.py check-native-install build/release/stage
+          cmake -S native/tests/install_consumer -B build/release-consumer -G Ninja -DCMAKE_BUILD_TYPE=Release -DMONOREPO_INSTALL_PREFIX="${{ github.workspace }}/build/release/stage"
+          cmake --build build/release-consumer
+          ctest --test-dir build/release-consumer --output-on-failure
+
+  native-analysis:
+    name: Native static analysis
+    needs: ci-context
+    if: *run-quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Install native analysis tools
+        run: sudo apt-get update && sudo apt-get install --yes clang-format clang-tidy cppcheck ninja-build
+      - run: cmake --preset analysis
+      - run: cmake --build --preset analysis
+      - run: cmake --build --preset analysis --target format-c-check
+
+  sanitizers:
+    name: Native sanitizers
+    needs: ci-context
+    if: *run-quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - run: cmake --preset asan
+      - run: cmake --build --preset asan
+      - run: ctest --preset asan
+
+
+  release-validation:
+    name: Release validation
+    needs: ci-context
+    if: >-
+      needs.ci-context.outputs.role == 'authoritative' &&
+      needs.ci-context.outputs.profile == 'release'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+        with:
+          enable-cache: true
+          python-version: '3.12'
+      - name: Validate new commit subjects
+        env:
+          COMMIT_BASE: ${{ fromJSON(needs.ci-context.outputs.context).base_sha }}
+        run: python tools/repo_tools/run.py check-commits --base "${COMMIT_BASE}" --head HEAD
+      - run: uv sync --locked --all-packages
+      - run: uv run repo-tools check-workspace
+      - run: uv run repo-tools check-versions
+      - run: uv run repo-tools check-python-install
+      - name: Verify native Release installation
+        run: |
+          cmake --preset release
+          cmake --build --preset release
+          cmake --install build/release --prefix build/release/stage
+          python tools/repo_tools/run.py check-native-install build/release/stage
+          cmake -S native/tests/install_consumer -B build/release-consumer -G Ninja -DCMAKE_BUILD_TYPE=Release -DMONOREPO_INSTALL_PREFIX="${{ github.workspace }}/build/release/stage"
+          cmake --build build/release-consumer
+          ctest --test-dir build/release-consumer --output-on-failure
+
+  ci-result:
+    name: CI result
+    needs:
+      - ci-context
+      - python-quality
+      - python-tests
+      - coverage
+      - documentation
+      - native-build
+      - native-analysis
+      - sanitizers
+      - release-validation
+    if: >-
+      always() && (github.event_name != 'push' ||
+      github.event.before == '0000000000000000000000000000000000000000' ||
+      github.event.before == '0000000000000000000000000000000000000000000000000000000000000000')
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Require selected validation
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CI_CONTEXT: ${{ needs.ci-context.outputs.context }}
+        run: python tools/repo_tools/run.py check-ci-result
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        if: github.event_name != 'push' && needs.ci-context.outputs.role == 'authoritative'
+        with:
+          name: pr-validation
+          path: build/pr-validation/validation.json
+          if-no-files-found: error
+          overwrite: true
