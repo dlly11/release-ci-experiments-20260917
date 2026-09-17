@@ -113,10 +113,10 @@ The release workflow runs after successful **post-merge verification on the curr
    required checks and reviews pass. Auto-merge supports every release version, including majors.
 5. After the release PR is merged and post-merge verification succeeds, Release Please creates the `vX.Y.Z` tag and
    GitHub Release.
-6. Once **Create GitHub release** succeeds, asset jobs build wheels and source distributions for
-   every product workspace member,
-   creates native install archives for Linux, macOS, and Windows, smoke-tests the built wheels and
-   native install trees, verifies version metadata, and attaches them to the GitHub Release. These
+6. When **Create GitHub release** reports a new release, asset jobs build wheels and source
+   distributions for every product workspace member, create native install archives for Linux,
+   macOS, and Windows, smoke-test the built wheels and native install trees, verify version
+   metadata, and attach the artifacts to the GitHub Release. These
    checks exercise the actual release artifacts; unit-test matrices, coverage, linting, and
    sanitizers remain on PRs.
 

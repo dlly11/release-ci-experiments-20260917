@@ -61,7 +61,8 @@ events, including pushes, do not start workflows. Explicit `workflow_dispatch` c
 workflows, so Release dispatches CI and title validation after synchronizing its branch.
 The dispatched run performs the authoritative validation without approval. GitHub may still
 require the automatic PR runs before its required checks allow merging. Those CI runs verify
-the dispatched result instead of repeating the quality suite. See [GitHub's token event behavior](https://docs.github.com/en/actions/concepts/security/github_token#when-github_token-triggers-workflow-runs).
+the dispatched result instead of repeating the quality suite. See
+[GitHub's token event behavior](https://docs.github.com/en/actions/concepts/security/github_token#when-github_token-triggers-workflow-runs).
 The title workflow uses only read access to contents and pull requests. No additional credential
 is required for this default mode. Manual dispatch requires the workflow on the default branch.
 
@@ -103,7 +104,8 @@ For an App, install it on this repository with **Contents**, **Pull requests**, 
 read/write permissions. The workflow uses the official, SHA-pinned
 [App token action](https://github.com/actions/create-github-app-token), scopes its token to this
 repository, and creates and revokes a separate token within each release job that needs it.
-Registration supplies an automation identity; no hosted application code or server is required. An existing approved App can be used.
+Registration supplies an automation identity; no hosted application code or server is required.
+An existing approved App can be used.
 For PAT mode, prefer a fine-grained token with those same permissions on this repository and an
 account allowed to perform the required operations. Follow enterprise approval and expiry policy;
 rotate or renew it before expiry. Never put either credential in a creation recipe.

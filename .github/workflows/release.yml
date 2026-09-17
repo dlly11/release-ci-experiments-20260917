@@ -35,7 +35,8 @@ jobs:
       actions: read
       contents: write
       issues: write
-      pull-requests: read
+      # Release Please comments on the merged PR after creating its release.
+      pull-requests: write
     outputs:
       ready: ${{ steps.readiness.outputs.ready }}
       release-created: ${{ steps.release.outputs.release_created }}
@@ -71,7 +72,7 @@ jobs:
           client-id: ${{ vars.RELEASE_APP_CLIENT_ID }}
           private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
           permission-contents: write
-          permission-pull-requests: read
+          permission-pull-requests: write
           permission-issues: write
       - name: Run Release Please
         if: steps.readiness.outputs.ready == 'true'
