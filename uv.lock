@@ -821,7 +821,7 @@ wheels = [
 
 [[package]]
 name = "release-ci-experiments-20260917"
-version = "0.1.0"
+version = "0.2.0"
 source = { virtual = "." }
 
 [package.dev-dependencies]
@@ -890,12 +890,12 @@ test = [
 
 [[package]]
 name = "release-lab-core"
-version = "0.1.0"
+version = "0.2.0"
 source = { editable = "python/packages/core" }
 
 [[package]]
 name = "release-lab-package-a"
-version = "0.1.0"
+version = "0.2.0"
 source = { editable = "python/packages/package_a" }
 dependencies = [
     { name = "release-lab-core" },
@@ -906,7 +906,7 @@ requires-dist = [{ name = "release-lab-core", editable = "python/packages/core" 
 
 [[package]]
 name = "release-lab-package-a-cli"
-version = "0.1.0"
+version = "0.2.0"
 source = { editable = "python/apps/package_a_cli" }
 dependencies = [
     { name = "release-lab-package-a" },
@@ -917,7 +917,7 @@ requires-dist = [{ name = "release-lab-package-a", editable = "python/packages/p
 
 [[package]]
 name = "release-lab-package-b"
-version = "0.1.0"
+version = "0.2.0"
 source = { editable = "python/packages/package_b" }
 dependencies = [
     { name = "release-lab-core" },
